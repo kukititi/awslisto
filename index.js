@@ -76,6 +76,8 @@ app.get('/products', async (req, res) => {
   res.render('products', { lista });
 });
 
+
+
 app.post('/login', async (req, res) => {
   const email = req.body.email;
   const password = req.body.contra;
@@ -98,7 +100,7 @@ app.post('/login', async (req, res) => {
     );
 
     res.cookie(galletita, token, { maxAge: 60 * 5 * 1000 });
-    res.cookie('userId', id);  // Establecer userId en la cookie
+    res.cookie('userId', id); 
     res.redirect(302, '/profile');
     return;
   }
@@ -122,7 +124,7 @@ app.post('/registrar', async (req, res) => {
   const token = jwt.sign({ id, exp: que }, SPW);
 
   res.cookie(galletita, token, { maxAge: 60 * 5 * 1000 });
-  res.cookie('userId', id);  // Establecer userId en la cookie
+  res.cookie('userId', id);  
 
   res.redirect(302, '/profile');
 });
@@ -175,7 +177,7 @@ app.get('/Carrito', async (req, res) => {
       SELECT c.id, p.name, p.price, c.quantiti as quantity
       FROM cart c
       JOIN products p ON c.prod_id = p.id
-      WHERE c.us_id = $1::text
+      WHERE c.us_id = $1
   `;
 
   try {
@@ -197,14 +199,14 @@ app.post('/carrito/add', async (req, res) => {
     return;
   }
 
-  const querySelect = 'SELECT * FROM cart WHERE us_id = $1::text AND prod_id = $2';
+  const querySelect = 'SELECT * FROM cart WHERE us_id = $1 AND prod_id = $2';
   const results = await sql(querySelect, [userId.toString(), prod_id]);
 
   if (results.length > 0) {
-    const queryUpdate = 'UPDATE cart SET quantiti = quantiti + $1 WHERE us_id = $2::text AND prod_id = $3';
+    const queryUpdate = 'UPDATE cart SET quantiti = quantiti + $1 WHERE us_id = $2 AND prod_id = $3';
     await sql(queryUpdate, [quantity, userId.toString(), prod_id]);
   } else {
-    const queryInsert = 'INSERT INTO cart (us_id, prod_id, quantiti) VALUES ($1::text, $2, $3)';
+    const queryInsert = 'INSERT INTO cart (us_id, prod_id, quantiti) VALUES ($1, $2, $3)';
     await sql(queryInsert, [userId.toString(), prod_id, quantity]);
   }
 
