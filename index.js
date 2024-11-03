@@ -14,6 +14,24 @@ const sql = neon('postgresql://piscolita_owner:qg0uBlwk4vLc@ep-withered-silence-
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const checkAuthentication = (req) => {
+  const token = req.cookies[galletita];
+  try {
+    jwt.verify(token, SPW);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+const authMiddleware = (req, res, next) => {
+  const token = req.cookies[galletita];
+  try {
+    req.user = jwt.verify(token, SPW);
+    next();
+  } catch (e) {
+    res.render('unauthorised');
+  }
+};
 
 app.use(express.static(path.join(__dirname, "/public")));
 app.use(express.json());
@@ -30,51 +48,69 @@ app.set('view engine', 'handlebars');
 app.set('views', './views');
 
 app.get("/", async (req, res) => {
-  const products = await sql('SELECT * FROM products');
+  const isAuthenticated = checkAuthentication(req);
+  const products = await sql('SELECT * FROM products WHERE destacado = true');
   const users = await sql('SELECT * FROM users WHERE id = 1');
   const user = users[0];
   res.render("home", {
     products,
     user,
     title: "Home",
+    isAuthenticated,
   });
 });
 
-app.get('/Accesorios', (req, res) => {
-  res.render('accs');
+app.get('/Accesorios', async (req, res) => {
+  const isAuthenticated = checkAuthentication(req);
+  const lista = await sql('SELECT * FROM products WHERE categ = \'ACCESORIOS\'');
+  res.render('accs', { lista, isAuthenticated });
 });
 
-app.get('/Equipo', (req, res) => {
-  res.render('equi');
+app.get('/Equipo', async (req, res) => {
+  const isAuthenticated = checkAuthentication(req);
+  const lista = await sql('SELECT * FROM products WHERE categ = \'EQUIPO\'');
+  res.render('equi', { lista, isAuthenticated });
 });
 
-app.get('/Repuestos', (req, res) =>{
-  res.render('repu');
+app.get('/Repuestos', async (req, res) =>{
+  const isAuthenticated = checkAuthentication(req);
+  const lista = await sql('SELECT * FROM products WHERE categ = \'REPUESTO\'');
+  res.render('repu', { lista, isAuthenticated });
 });
 
 app.get('/Replicas', async (req, res) => {
-  const lista = await sql('SELECT * FROM products');
-  res.render('repli', { lista });
+  const isAuthenticated = checkAuthentication(req);
+  const lista = await sql('SELECT * FROM products WHERE categ = \'REPLICAS\'');
+  res.render('repli', { lista, isAuthenticated });
 });
 
 app.get('/Login', (req, res) => {
   const error = req.query.error;
-  res.render('login', { error });
+  const isAuthenticated = checkAuthentication(req);
+
+  res.render('login', {
+    error,
+    isAuthenticated, 
+});
 });
 
 app.get('/Registro', async (req, res) => {
+  const isAuthenticated = checkAuthentication(req);
   const lista = await sql('SELECT * FROM users');
-  res.render('regist', { lista });
+  res.render('regist', { lista, isAuthenticated });
 });
 
 app.get('/LogAdmin', (req, res) => {
+
   res.render('LogAdmin');
 });
 
 app.get('/products', async (req, res) => {
   const lista = await sql('SELECT * FROM products');
-  res.render('products', { lista });
+  res.render('products', { lista, isAuthenticated });
 });
+
+
 
 app.post('/login', async (req, res) => {
   const email = req.body.email;
@@ -98,7 +134,7 @@ app.post('/login', async (req, res) => {
     );
 
     res.cookie(galletita, token, { maxAge: 60 * 5 * 1000 });
-    res.cookie('userId', id);  // Establecer userId en la cookie
+    res.cookie('userId', id); 
     res.redirect(302, '/profile');
     return;
   }
@@ -122,29 +158,19 @@ app.post('/registrar', async (req, res) => {
   const token = jwt.sign({ id, exp: que }, SPW);
 
   res.cookie(galletita, token, { maxAge: 60 * 5 * 1000 });
-  res.cookie('userId', id);  // Establecer userId en la cookie
+  res.cookie('userId', id);  
 
   res.redirect(302, '/profile');
 });
 
-const authMiddleweare = (req, res, next) => {
-  const token = req.cookies[galletita];
-
-  try {
-    req.user = jwt.verify(token, SPW);
-    next();
-  } catch (e) {
-    res.render('unauthorised');
-  }
-};
-
-app.get('/profile', authMiddleweare, async (req, res) => {
+app.get('/profile', authMiddleware, async (req, res) => {
+  const isAuthenticated = true; // Usuario autenticado
   const userId = req.user.id;
   const query = 'SELECT name, email FROM users WHERE id = $1';
   const results = await sql(query, [userId]);
   const user = results[0];
 
-  res.render('profile', user);
+  res.render('profile', { user, isAuthenticated });
 });
 
 app.post('/producti', async (req, res) => {
@@ -175,7 +201,7 @@ app.get('/Carrito', async (req, res) => {
       SELECT c.id, p.name, p.price, c.quantiti as quantity
       FROM cart c
       JOIN products p ON c.prod_id = p.id
-      WHERE c.us_id = $1::text
+      WHERE c.us_id = $1
   `;
 
   try {
@@ -197,14 +223,14 @@ app.post('/carrito/add', async (req, res) => {
     return;
   }
 
-  const querySelect = 'SELECT * FROM cart WHERE us_id = $1::text AND prod_id = $2';
+  const querySelect = 'SELECT * FROM cart WHERE us_id = $1 AND prod_id = $2';
   const results = await sql(querySelect, [userId.toString(), prod_id]);
 
   if (results.length > 0) {
-    const queryUpdate = 'UPDATE cart SET quantiti = quantiti + $1 WHERE us_id = $2::text AND prod_id = $3';
+    const queryUpdate = 'UPDATE cart SET quantiti = quantiti + $1 WHERE us_id = $2 AND prod_id = $3';
     await sql(queryUpdate, [quantity, userId.toString(), prod_id]);
   } else {
-    const queryInsert = 'INSERT INTO cart (us_id, prod_id, quantiti) VALUES ($1::text, $2, $3)';
+    const queryInsert = 'INSERT INTO cart (us_id, prod_id, quantiti) VALUES ($1, $2, $3)';
     await sql(queryInsert, [userId.toString(), prod_id, quantity]);
   }
 
