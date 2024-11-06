@@ -341,4 +341,30 @@ app.post('/pagar', async (req, res) => {
   const query = 'INSERT INTO ttl_v VALUES ($1)';
   res.redirect('/products');
 });
+
+app.post('/recargar-saldo', authMiddleware, async (req, res) => {
+  const userId = req.user.id;
+  const { amount } = req.body;
+
+  if (!amount || isNaN(amount) || amount <= 0) {
+      return res.json({ success: false, message: 'Monto inválido' });
+  }
+
+  try {
+      // Actualizar el saldo del usuario en la base de datos
+      const updateQuery = 'UPDATE users SET wallet = wallet + $1 WHERE id = $2 RETURNING wallet';
+      const results = await sql(updateQuery, [amount, userId]);
+
+      if (results.length > 0) {
+          const newBalance = results[0].wallet;
+          res.json({ success: true, newBalance });
+      } else {
+          res.json({ success: false, message: 'Usuario no encontrado' });
+      }
+  } catch (error) {
+      console.error('Error al recargar saldo:', error);
+      res.status(500).json({ success: false, message: 'Error al recargar saldo' });
+  }
+});
+
 app.listen(3000, () => console.log('tuki'));
