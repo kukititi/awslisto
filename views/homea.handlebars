@@ -52,7 +52,10 @@
             <div class="card-body">
                 <h5 class="card-title">{{this.name}}</h5>
                 <p class="card-text">${{this.price}}</p>       
-        <button class="btn btn-primary"><a href="/products">Editar</a></button>
+    <form action="/editar" method="post">
+        <input type="hidden" name="prod_id" value="{{this.id}}">
+        <button type="submit" class="btn btn-primary">Editar</button>
+    </form>
                 <div class="card__description">{{this.descr}}</div>
             </div>
         </div>

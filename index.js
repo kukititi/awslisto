@@ -6,7 +6,15 @@ import { fileURLToPath } from "url";
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import bcrypt from 'bcryptjs';
+import authRouter from './routes/auth.js';
+import productsRouter from './routes/products.js';
+import cartRouter from './routes/cart.js';
+import profileRouter from './routes/profile.js';
 import { isatty } from 'tty';
+import adminRouter from './routes/admin.js';
+
+
+
 
 const SPW = 'Amimegustalapepsi';
 const galletita = 'galletita';
@@ -50,7 +58,7 @@ app.engine('handlebars', engine({
     helpers: {
         multiply: (a, b) => a * b,
         totalPrice: (cart) => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
-        eq: (a, b) => a === b,
+        eq: (a, b) => a === b // Helper para comparar igualdad
       }
 }));
 
@@ -84,25 +92,25 @@ app.get('/homea', async (req, res) => {
 
 app.get('/Accesorios', async (req, res) => {
   const isAuthenticated = checkAuthentication(req);
-  const lista = await sql('SELECT * FROM products WHERE categ = \'Accesorios\'');
+  const lista = await sql('SELECT * FROM products WHERE categ = \'ACCESORIOS\'');
   res.render('accs', { lista, isAuthenticated });
 });
 
 app.get('/Equipo', async (req, res) => {
   const isAuthenticated = checkAuthentication(req);
-  const lista = await sql('SELECT * FROM products WHERE categ = \'Equipamiento\'');
+  const lista = await sql('SELECT * FROM products WHERE categ = \'EQUIPO\'');
   res.render('equi', { lista, isAuthenticated });
 });
 
 app.get('/Repuestos', async (req, res) =>{
   const isAuthenticated = checkAuthentication(req);
-  const lista = await sql('SELECT * FROM products WHERE categ = \'Repuestos\'');
+  const lista = await sql('SELECT * FROM products WHERE categ = \'REPUESTO\'');
   res.render('repu', { lista, isAuthenticated });
 });
 
 app.get('/Replicas', async (req, res) => {
   const isAuthenticated = checkAuthentication(req);
-  const lista = await sql('SELECT * FROM products WHERE categ = \'Replicas\'');
+  const lista = await sql('SELECT * FROM products WHERE categ = \'REPLICAS\'');
   res.render('repli', { lista, isAuthenticated });
 });
 
@@ -253,13 +261,13 @@ app.get('/profile', authMiddleware, async (req, res) => {
 app.post('/producti', async (req, res) => {
   const name = req.body.name;
   const price = req.body.price;
-  const foto = req.body.foto;
+  const image = req.body.image;
   const categ = req.body.categ;
   const db = req.body.db;
   const descr = req.body.descr;
 
-  const query = 'INSERT INTO products (name, price, foto, categ, db, descr) VALUES ($1, $2, $3, $4, $5, $6)';
-  await sql(query, [name, price, foto, categ, db, descr]);
+  const query = 'INSERT INTO products (name, price, image, categ, db, descr) VALUES ($1, $2, $3, $4, $5, $6)';
+  await sql(query, [name, price, image, categ, db, descr]);
 
   res.redirect('/products');
 });
@@ -337,11 +345,8 @@ app.post('/carrito/remove', async (req, res) => {
 });
 
 app.post('/pagar', async (req, res) => {
-  const total = req.body.totalPrice;
-  const query = 'INSERT INTO ttl_v VALUES ($1)';
-  res.redirect('/products');
-});
 
+});
 app.post('/recargar-saldo', authMiddleware, async (req, res) => {
   const userId = req.user.id;
   const { amount } = req.body;
@@ -367,4 +372,13 @@ app.post('/recargar-saldo', authMiddleware, async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log('tuki'));
+
+app.use('/api/auth', authRouter);
+app.use('/api/products', productsRouter);
+app.use('/api/cart', cartRouter);
+app.use('/api/profile', profileRouter);
+app.use('/api/admin', adminRouter);
+
+
+app.listen(3001, () => console.log('tuki'));
+

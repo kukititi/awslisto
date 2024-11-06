@@ -44,6 +44,7 @@
                 <h3>Total: ${{totalPrice cart}}</h3>
                 <form action="/pagar" method="post" style="display:inline;">
                     <input type="hidden" name="totalAmount" value="{{totalPrice cart}}">
+                    <input type="hidden" name="id" value="{{us_id}}">
                     <button type="submit" class="btn btn-primary">Proceder al Pago</button>
                 </form>
             </div>

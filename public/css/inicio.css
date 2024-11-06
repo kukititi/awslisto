@@ -5,10 +5,7 @@
         position: relative;
         overflow: hidden;
     }
-    a {
-        color: white;
-        text-decoration: none;
-    }
+
 
     .card__description {
         display: block;
