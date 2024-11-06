@@ -6,7 +6,15 @@ import { fileURLToPath } from "url";
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import bcrypt from 'bcryptjs';
+import authRouter from './routes/auth.js';
+import productsRouter from './routes/products.js';
+import cartRouter from './routes/cart.js';
+import profileRouter from './routes/profile.js';
 import { isatty } from 'tty';
+import adminRouter from './routes/admin.js';
+
+
+
 
 const SPW = 'Amimegustalapepsi';
 const galletita = 'galletita';
@@ -50,7 +58,7 @@ app.engine('handlebars', engine({
     helpers: {
         multiply: (a, b) => a * b,
         totalPrice: (cart) => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0),
-        eq: (a, b) => a === b,
+        eq: (a, b) => a === b
       }
 }));
 
@@ -367,4 +375,12 @@ app.post('/recargar-saldo', authMiddleware, async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log('tuki'));
+
+app.use('/api/auth', authRouter);
+app.use('/api/products', productsRouter);
+app.use('/api/cart', cartRouter);
+app.use('/api/profile', profileRouter);
+app.use('/api/admin', adminRouter);
+
+
+app.listen(3001, () => console.log('tuki'));
